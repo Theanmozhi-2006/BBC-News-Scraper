@@ -1,0 +1,62 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+from datetime import datetime
+
+
+def scrape_headlines(url):
+    response = requests.get(url)
+
+    if response.status_code != 200:
+        print("Failed to fetch data")
+        return []
+
+    soup = BeautifulSoup(response.content, "xml")
+
+    headlines = []
+    for item in soup.find_all("item")[:10]:
+        title = item.title.text
+        link = item.link.text
+        headlines.append({"title": title, "link": link})
+
+    return headlines
+
+
+def display_headlines(headlines):
+    print(f"\n--- BBC News Headlines ({datetime.now().strftime('%d/%m/%Y')}) ---")
+
+    for i, h in enumerate(headlines, 1):
+        print(f"{i}. {h['title']}")
+
+    print(f"\nTotal: {len(headlines)} headlines")
+
+
+def save_to_csv(headlines):
+    filename = f"headlines_{datetime.now().strftime('%Y%m%d')}.csv"
+
+    with open(filename, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["title", "link"])
+        writer.writeheader()
+        writer.writerows(headlines)
+
+    print(f"\nSaved {len(headlines)} headlines to {filename}")
+
+
+categories = {
+    "tech": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+    "science": "https://feeds.bbci.co.uk/news/science/rss.xml",
+    "business": "https://feeds.bbci.co.uk/news/business/rss.xml"
+}
+
+s = input("Enter category (tech/science/business): ").lower()
+
+if s not in categories:
+    print("Invalid category selected!")
+else:
+    url = categories[s]
+
+    headlines = scrape_headlines(url)
+
+    display_headlines(headlines)
+
+    save_to_csv(headlines)
